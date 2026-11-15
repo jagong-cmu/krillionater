@@ -1,10 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Krillionater",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Suggests rare answers for krillion.io and tracks used answers in Puffer Party.",
   "permissions": ["storage"],
-  "host_permissions": ["https://api.anthropic.com/*"],
+  "host_permissions": [
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
   "background": { "service_worker": "dist/background.js", "type": "module" },
   "content_scripts": [
     {

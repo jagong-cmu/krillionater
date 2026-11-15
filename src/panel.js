@@ -5,52 +5,57 @@ const CSS = `
 :host { all: initial; }
 .box {
   position: fixed; left: 12px; bottom: 12px; z-index: 2147483647;
-  width: 270px; max-height: 70vh; display: flex; flex-direction: column;
-  font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: #dbe9ff; background: rgba(8, 16, 34, 0.94);
-  border: 1px solid #4de3ff; border-radius: 6px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  width: 250px; max-height: 80vh; display: flex; flex-direction: column;
+  font: 13px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #e8eefc; background: rgba(8, 14, 30, 0.95);
+  border: 1px solid #263a5e; border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
 }
-.box.turn { border-color: #ff5d8f; box-shadow: 0 0 0 2px #ff5d8f, 0 6px 24px rgba(0,0,0,.5); }
+.box.turn { border-color: #ff5d8f; box-shadow: 0 0 0 2px #ff5d8f, 0 8px 28px rgba(0,0,0,.55); }
 .head {
-  display: flex; align-items: center; gap: 6px; padding: 6px 8px;
-  cursor: move; user-select: none; border-bottom: 1px solid #1d3355;
+  display: flex; align-items: center; gap: 4px; padding: 7px 10px 0;
+  cursor: move; user-select: none;
 }
-.head b { color: #4de3ff; letter-spacing: 0.12em; flex: 1; }
-.head button, .foot button {
-  font: inherit; color: #9fb4d6; background: none; border: 1px solid #2a4168;
-  border-radius: 3px; padding: 0 6px; cursor: pointer;
-}
-.head button:hover, .foot button:hover { color: #fff; border-color: #4de3ff; }
-.body { overflow-y: auto; padding: 6px 8px; }
-.min .body, .min .foot { display: none; }
-.prompt { color: #fff; margin-bottom: 4px; }
-.status { color: #8fa3c4; margin-bottom: 6px; }
+.head b { flex: 1; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: #5f769c; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.head button { color: #5f769c; font-size: 12px; padding: 0 5px; border-radius: 4px; }
+.head button:hover { color: #fff; background: #1a2a48; }
+.body { overflow-y: auto; padding: 4px 10px 10px; }
+.min .body { display: none; }
+.min .head { padding-bottom: 7px; }
+.status { color: #8fa3c4; margin: 4px 0; }
 .status.turn { color: #ff5d8f; font-weight: 700; }
 .status.err { color: #ffb347; }
-ol { list-style: none; margin: 0; padding: 0; }
-li.sug {
-  display: flex; gap: 6px; align-items: baseline; padding: 4px 5px; margin: 2px 0;
-  border: 1px solid #1d3355; border-radius: 4px; cursor: pointer;
+.status button { margin-left: 6px; text-decoration: underline; color: #fff; }
+h4 { margin: 10px 0 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; }
+h4.rare { color: #4de3ff; }
+h4.fast { color: #ffd166; }
+h4.used { color: #5f769c; display: flex; align-items: center; gap: 6px; }
+h4.used button { color: #5f769c; font-size: 13px; line-height: 1; }
+h4.used button:hover { color: #fff; }
+.wait { color: #5f769c; font-size: 12px; }
+.rare-list button {
+  display: flex; align-items: baseline; gap: 8px; text-align: left;
+  padding: 5px 8px; margin: 0 -8px; width: calc(100% + 16px); border-radius: 6px;
+  font-size: 16px; font-weight: 650; color: #fff;
 }
-li.sug:hover { border-color: #4de3ff; background: rgba(77, 227, 255, 0.08); }
-li.sug:first-child { border-color: #4de3ff; }
-li.sug .k { color: #5f769c; min-width: 12px; }
-li.sug .a { color: #fff; font-weight: 700; flex: 1; word-break: break-word; }
-li.sug .n { color: #8fa3c4; font-size: 11px; display: block; font-weight: 400; }
-li.sug .t { color: #ff5d8f; font-size: 10px; text-transform: uppercase; }
-h4 { margin: 8px 0 3px; font: inherit; color: #5f769c; letter-spacing: 0.1em; }
-.used { display: flex; flex-wrap: wrap; gap: 3px; }
-.used span {
-  border: 1px solid #1d3355; border-radius: 3px; padding: 0 4px; color: #9fb4d6;
-  text-decoration: line-through; text-decoration-color: #5f769c;
+.rare-list button:hover { background: rgba(77, 227, 255, 0.14); }
+.rare-list .a { flex: 1; overflow-wrap: anywhere; }
+.rare-list .t { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: #ff5d8f; text-transform: uppercase; }
+.fast-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.fast-list button {
+  padding: 3px 8px; border-radius: 999px; font-size: 13px; color: #f4ecd6;
+  background: rgba(255, 209, 102, 0.1);
 }
-.used span i { font-style: normal; color: #5f769c; text-decoration: none; display: inline-block; }
-.foot { display: flex; gap: 4px; padding: 6px 8px; border-top: 1px solid #1d3355; }
-.foot input {
-  flex: 1; min-width: 0; font: inherit; color: #fff; background: #0b1730;
-  border: 1px solid #2a4168; border-radius: 3px; padding: 2px 5px;
+.fast-list button:hover { background: rgba(255, 209, 102, 0.28); color: #fff; }
+.used-list { color: #6f84a8; font-size: 11px; line-height: 1.5; }
+.used-list i { font-style: normal; color: #44587a; }
+.add { display: flex; gap: 4px; margin-top: 6px; }
+.add input {
+  flex: 1; min-width: 0; font: inherit; font-size: 12px; color: #fff; background: #0b1730;
+  border: 1px solid #263a5e; border-radius: 5px; padding: 3px 6px; outline: none;
 }
+.add input:focus { border-color: #4de3ff; }
 `;
 
 const TIER_LABEL = {
@@ -77,34 +82,18 @@ export function createPanel({ onPick, onMarkUsed, onMore, onOptions }) {
   style.textContent = CSS;
   const box = el("div", "box");
   const head = el("div", "head");
-  const title = el("b", "", "KRILLIONATER");
-  const more = el("button", "", "more");
+  const more = el("button", "", "↻");
   more.title = "Ask for more answers";
   const toggle = el("button", "", "–");
   toggle.title = "Minimize";
-  head.append(title, more, toggle);
+  head.append(el("b", "", "KRILLIONATER"), more, toggle);
   const body = el("div", "body");
-  const foot = el("div", "foot");
-  const usedInput = el("input");
-  usedInput.placeholder = "mark an answer as used…";
-  const usedBtn = el("button", "", "add");
-  foot.append(usedInput, usedBtn);
-  box.append(head, body, foot);
+  box.append(head, body);
   shadow.append(style, box);
   document.documentElement.append(host);
 
   more.addEventListener("click", () => onMore());
   toggle.addEventListener("click", () => box.classList.toggle("min"));
-  const submitUsed = () => {
-    const value = usedInput.value.trim();
-    if (value) onMarkUsed(value);
-    usedInput.value = "";
-  };
-  usedBtn.addEventListener("click", submitUsed);
-  usedInput.addEventListener("keydown", (e) => {
-    e.stopPropagation();
-    if (e.key === "Enter") submitUsed();
-  });
 
   // Lets the player move the panel by its header.
   head.addEventListener("pointerdown", (down) => {
@@ -125,63 +114,103 @@ export function createPanel({ onPick, onMarkUsed, onMore, onOptions }) {
     window.addEventListener("pointerup", stop);
   });
 
+  // The "mark an answer as used" box. It stays out of view until the player opens it.
+  let addOpen = false;
+  let lastView = null;
   let lastSignature = "";
+
+  function paint(view) {
+    box.classList.toggle("turn", !!view.myTurn);
+    body.replaceChildren();
+
+    if (view.error) {
+      const status = el("div", "status err", view.error.message);
+      if (view.error.code === "nokey" || view.error.code === "auth") {
+        const open = el("button", "", "Settings");
+        open.addEventListener("click", () => onOptions());
+        status.append(open);
+      }
+      body.append(status);
+    } else if (!view.hasPrompt) {
+      body.append(el("div", "status", "Waiting for a prompt…"));
+      return;
+    } else if (view.myTurn) {
+      body.append(el("div", "status turn", "YOUR TURN"));
+    }
+
+    const section = (kind, label, items, waitText, build) => {
+      body.append(el("h4", kind, label));
+      if (!items.length) {
+        if (!view.error) body.append(el("div", "wait", view.loading ? waitText : "No answers left."));
+        return;
+      }
+      const list = el("div", `${kind}-list`);
+      for (const s of items) {
+        const button = el("button");
+        button.title = s.note || "";
+        build(button, s);
+        button.addEventListener("click", () => onPick(s.answer));
+        list.append(button);
+      }
+      body.append(list);
+    };
+
+    // RARE: the rarest answers. Alt+1 to Alt+3 select the first three.
+    section("rare", "RARE", view.rare, "Searching…", (button, s) => {
+      button.append(el("span", "a", s.answer));
+      if (s.tier) button.append(el("span", "t", TIER_LABEL[s.tier] ?? s.tier));
+    });
+    // FAST: any correct answers. Alt+4 to Alt+6 select the first three.
+    section("fast", "FAST", view.fast, "Getting answers…", (button, s) => {
+      button.textContent = s.answer;
+    });
+
+    if (view.mode !== "party") return;
+    const usedHead = el("h4", "used", `USED ${view.used.length}`);
+    const plus = el("button", "", addOpen ? "×" : "+");
+    plus.title = "Mark an answer as used";
+    plus.addEventListener("click", () => {
+      addOpen = !addOpen;
+      paint(lastView);
+      if (addOpen) body.querySelector(".add input")?.focus();
+    });
+    usedHead.append(plus);
+    body.append(usedHead);
+    if (view.used.length) {
+      const used = el("div", "used-list");
+      view.used.forEach((u, i) => {
+        if (i) used.append(" · ");
+        used.append(u.answer);
+        if (u.by) used.append(" ", el("i", "", u.by));
+      });
+      body.append(used);
+    }
+    if (addOpen) {
+      const add = el("div", "add");
+      const input = el("input");
+      input.placeholder = "answer that a player said…";
+      input.addEventListener("keydown", (e) => {
+        e.stopPropagation();
+        if (e.key !== "Enter") return;
+        const value = input.value.trim();
+        if (value) onMarkUsed(value);
+        input.value = "";
+      });
+      add.append(input);
+      body.append(add);
+    }
+  }
 
   function render(view) {
     host.style.display = view.visible ? "" : "none";
     if (!view.visible) return;
     const signature = JSON.stringify(view);
     if (signature === lastSignature) return;
+    // Do not paint again while the player types in the "used" box.
+    if (addOpen && shadow.activeElement?.matches?.(".add input") && lastView) return;
     lastSignature = signature;
-
-    box.classList.toggle("turn", !!view.myTurn);
-    foot.style.display = view.mode === "party" ? "" : "none";
-    body.replaceChildren();
-    body.append(el("div", "prompt", view.prompt || "Waiting for a prompt…"));
-
-    if (view.error) {
-      const status = el("div", "status err", view.error.message);
-      body.append(status);
-      if (view.error.code === "nokey" || view.error.code === "auth") {
-        const open = el("button", "", "Open settings");
-        open.addEventListener("click", () => onOptions());
-        const wrap = el("div", "foot");
-        wrap.style.border = "none";
-        wrap.style.padding = "0 0 6px";
-        wrap.append(open);
-        body.append(wrap);
-      }
-    } else if (view.myTurn) {
-      body.append(el("div", "status turn", "YOUR TURN — pick an answer"));
-    } else if (view.loading) {
-      body.append(el("div", "status", "Searching for rare answers…"));
-    } else if (view.prompt && !view.suggestions.length) {
-      body.append(el("div", "status", "No answers left. Press “more”."));
-    }
-
-    const list = el("ol");
-    view.suggestions.forEach((s, i) => {
-      const item = el("li", "sug");
-      item.title = "Click to put this answer in the box";
-      const answer = el("span", "a", s.answer);
-      if (s.note) answer.append(el("span", "n", s.note));
-      item.append(el("span", "k", i < 3 ? String(i + 1) : "·"), answer);
-      if (s.tier) item.append(el("span", "t", TIER_LABEL[s.tier] ?? s.tier));
-      item.addEventListener("click", () => onPick(s.answer));
-      list.append(item);
-    });
-    body.append(list);
-
-    if (view.mode === "party" && view.used.length) {
-      body.append(el("h4", "", `USED (${view.used.length})`));
-      const used = el("div", "used");
-      for (const u of view.used) {
-        const chip = el("span", "", u.answer);
-        if (u.by) chip.append(" ", el("i", "", u.by));
-        used.append(chip);
-      }
-      body.append(used);
-    }
+    lastView = view;
+    paint(view);
   }
 
   return { render, host };

@@ -7,7 +7,7 @@
       body { font: 14px/1.5 system-ui, sans-serif; max-width: 520px; margin: 40px auto; padding: 0 16px; color: #1b2433; }
       h1 { font-size: 20px; }
       label { display: block; margin: 16px 0 4px; font-weight: 600; }
-      input[type="password"], select { width: 100%; padding: 8px; font: inherit; box-sizing: border-box; }
+      input[type="password"], input[type="text"], select { width: 100%; padding: 8px; font: inherit; box-sizing: border-box; }
       .row { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
       .row label { margin: 0; font-weight: 400; }
       button { margin-top: 20px; padding: 8px 16px; font: inherit; cursor: pointer; }
@@ -17,15 +17,19 @@
   </head>
   <body>
     <h1>Krillionater settings</h1>
-    <label for="apiKey">Claude API key</label>
-    <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off" />
-    <p class="hint">The extension stores the key in this browser only. It sends the key only to api.anthropic.com.</p>
+    <label for="provider">Answer provider</label>
+    <select id="provider"></select>
+    <label for="apiKey" id="keyLabel">API key</label>
+    <input id="apiKey" type="password" autocomplete="off" />
+    <p class="hint" id="keyHint"></p>
     <label for="model">Model</label>
-    <select id="model"></select>
-    <p class="hint">A faster model shows answers sooner. A more capable model finds rarer answers.</p>
-    <div class="row">
+    <input id="model" type="text" list="models" autocomplete="off" spellcheck="false" />
+    <datalist id="models"></datalist>
+    <p class="hint">Select a model from the list, or type a different model ID. This model makes the RARE list. A more capable model finds rarer answers, but it is slower.</p>
+    <p class="hint" id="quickHint"></p>
+    <div class="row" id="fastRow">
       <input id="fast" type="checkbox" />
-      <label for="fast">Fast mode (Opus 5.5 and Fable 5.2 only, costs more)</label>
+      <label for="fast">Priority speed for Opus 5.5 and Fable 5.2 (costs more)</label>
     </div>
     <button id="save">Save</button><span id="status"></span>
     <script src="dist/options.js"></script>

@@ -5,10 +5,12 @@ import { includesAnswer, mergeCands, normalize, pickSuggestions, tierKey } from 
 import { createPanel } from "./panel.js";
 
 const TICK_MS = 200;
-const SHOWN = 6;
-const WANT = { solo: 12, party: 40 };
-// Ask for more party answers when fewer than this number remain.
-const PARTY_LOW = 8;
+// The number of answers that the panel shows in each list.
+const SHOWN = { rare: 5, fast: 8 };
+// The number of answers to ask for in each list.
+const WANT = { solo: { rare: 12, fast: 10 }, party: { rare: 40, fast: 30 } };
+// Ask for more party answers when fewer than this number remain in a list.
+const PARTY_LOW = { rare: 8, fast: 8 };
 
 const freshRound = (key = "", mode = "solo", prompt = "") => ({
   key,
@@ -41,6 +43,12 @@ function suggestions() {
   });
 }
 
+// The two lists. RARE: the rarest answers. FAST: any correct answers, at once.
+function lists() {
+  const all = suggestions();
+  return { rare: all.filter((c) => !c.q), fast: all.filter((c) => c.q) };
+}
+
 function send(msg) {
   try {
     chrome.runtime.sendMessage(msg).catch(() => {});
@@ -71,6 +79,9 @@ function requestSuggestions(want) {
       current.invalid = [...new Set([...current.invalid, ...msg.invalid])];
     } else if (msg.type === "cands") {
       current.cands = mergeCands(current.cands, msg.items);
+    } else if (msg.type === "bad") {
+      // The category check found that these answers do not fit the prompt.
+      current.invalid = [...new Set([...current.invalid, ...msg.answers])];
     } else if (msg.type === "error") {
       current.error = { code: msg.code, message: msg.message };
     } else if (msg.type === "done") {
@@ -96,12 +107,14 @@ function requestSuggestions(want) {
 function setRound(key, mode, prompt) {
   if (round.port) round.port.disconnect();
   round = freshRound(key, mode, prompt);
+  lastTyped = "";
   if (prompt) requestSuggestions(WANT[mode]);
 }
 
-function markUsed(answer, by = "") {
+// `alias` marks the typed form of an answer. The panel does not show it.
+function markUsed(answer, by = "", alias = false) {
   if (!answer || includesAnswer(usedAnswers(), answer)) return;
-  round.used.push({ answer, by });
+  round.used.push({ answer, by, alias });
 }
 
 function markInvalid(answer) {
@@ -133,7 +146,10 @@ function tickSolo(state) {
     seenLanded.add(landed.el);
     const tier = tierKey(landed.tier);
     if (firstTick || !round.prompt || !landed.answer || !tier) continue;
-    round.results[normalize(landed.answer)] = { answer: landed.answer, tier };
+    const result = { answer: landed.answer, tier };
+    round.results[normalize(landed.answer)] = result;
+    // The game can correct the typed text. Keep the result for the typed text also.
+    if (lastTyped) round.results[normalize(lastTyped)] = result;
     send({ type: "result", prompt: round.prompt, answer: landed.answer, tier });
   }
   const rejected = newReject(state.reject);
@@ -147,33 +163,49 @@ function tickParty(state) {
   if (!round.prompt) return;
   trackInput(state.input);
   for (const seat of state.seats) {
-    if (seat.said) markUsed(seat.said, seat.me ? "you" : seat.name);
+    if (!seat.said) continue;
+    // The game can correct the typed text to the answer on its list. Then the
+    // page shows a different text. Record the typed text also.
+    if (seat.me && lastTyped && !includesAnswer(usedAnswers(), seat.said)) {
+      markUsed(lastTyped, "you", true);
+      lastTyped = "";
+    }
+    markUsed(seat.said, seat.me ? "you" : seat.name);
   }
   const rejected = newReject(state.reject);
   if (rejected) {
     if (/already said/i.test(state.reject)) markUsed(rejected);
     else markInvalid(rejected);
   }
-  if (!round.loading && !round.error && round.refills < 3 && suggestions().length < PARTY_LOW) {
-    round.refills += 1;
-    requestSuggestions(suggestions().length + WANT.party);
+  if (!round.loading && !round.error && round.refills < 3) {
+    const { rare, fast } = lists();
+    const want = {
+      rare: rare.length < PARTY_LOW.rare ? rare.length + WANT.party.rare : 0,
+      fast: fast.length < PARTY_LOW.fast ? fast.length + WANT.party.fast : 0,
+    };
+    if (want.rare || want.fast) {
+      round.refills += 1;
+      requestSuggestions(want);
+    }
   }
 }
 
 let current = null;
 
+const view = (list, count) =>
+  list.slice(0, count).map(({ answer, note, tier }) => ({ answer, note, tier }));
+
 function draw() {
   panel.render({
     visible: !!current,
     mode: round.mode,
-    prompt: round.prompt,
+    hasPrompt: !!round.prompt,
     myTurn: current?.mode === "party" && myTurn,
     loading: round.loading,
     error: round.error,
-    suggestions: suggestions()
-      .slice(0, SHOWN)
-      .map(({ answer, note, tier }) => ({ answer, note, tier })),
-    used: round.used.slice().reverse(),
+    rare: view(lists().rare, SHOWN.rare),
+    fast: view(lists().fast, SHOWN.fast),
+    used: round.used.filter((u) => !u.alias).reverse(),
   });
 }
 
@@ -198,17 +230,23 @@ const panel = createPanel({
     draw();
   },
   onMore: () => {
-    if (round.prompt) requestSuggestions(suggestions().length + WANT[round.mode]);
+    if (!round.prompt) return;
+    const { rare, fast } = lists();
+    const want = WANT[round.mode];
+    requestSuggestions({ rare: rare.length + want.rare, fast: fast.length + want.fast });
   },
   onOptions: () => send({ type: "openOptions" }),
 });
 
-// Alt+1, Alt+2, Alt+3 put the matching suggestion in the answer box.
+// Alt+1, Alt+2, Alt+3 put a RARE answer in the answer box.
+// Alt+4, Alt+5, Alt+6 put a FAST answer in the answer box.
 window.addEventListener(
   "keydown",
   (e) => {
-    if (!e.altKey || !/^Digit[1-3]$/.test(e.code)) return;
-    const choice = suggestions()[Number(e.code.slice(5)) - 1];
+    if (!e.altKey || !/^Digit[1-6]$/.test(e.code)) return;
+    const n = Number(e.code.slice(5));
+    const { rare, fast } = lists();
+    const choice = n <= 3 ? rare[n - 1] : fast[n - 4];
     if (choice && current?.input) {
       e.preventDefault();
       pick(choice.answer);
