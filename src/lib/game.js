@@ -10,12 +10,17 @@ export const TIER_SCORE = {
 };
 
 // A candidate with no known result ranks between "rare" and "deep cut".
-// A candidate of the FAST list (`q: true`) ranks below one of the RARE list.
-// A candidate that passed the category check (`v: true`) ranks above one that did not yet.
+// Three kinds of candidate, best first:
+// - RARE list, from the selected model (no flag);
+// - RARE list, from the fastest model while the selected model works (`w: true`);
+// - FAST list (`q: true`).
+// A candidate that passed the category check (`v: true`) ranks above one of
+// the same kind that did not yet.
 const UNKNOWN_SCORE = 70;
+const WEAK_SCORE = 66;
 const QUICK_SCORE = 62;
-const VERIFIED_BONUS = 4;
-const grade = (c) => (c.q ? 0 : 2) + (c.v ? 1 : 0);
+const VERIFIED_BONUS = 2;
+const grade = (c) => (c.q ? 0 : c.w ? 2 : 4) + (c.v ? 1 : 0);
 
 export function normalize(s) {
   return String(s ?? "")
@@ -162,7 +167,8 @@ export function pickSuggestions(cands, { used = [], invalid = [], results = {} }
     .filter((c) => !used.some((u) => closeAnswer(u, c.answer)) && !includesAnswer(invalid, c.answer))
     .map((c, index) => {
       const tier = resultFor(c.answer)?.tier ?? null;
-      const unknown = (c.q ? QUICK_SCORE : UNKNOWN_SCORE) + (c.v ? VERIFIED_BONUS : 0);
+      const base = c.q ? QUICK_SCORE : c.w ? WEAK_SCORE : UNKNOWN_SCORE;
+      const unknown = base + (c.v ? VERIFIED_BONUS : 0);
       const score = tier ? TIER_SCORE[tier] ?? unknown : unknown;
       return { ...c, tier, score, index };
     })

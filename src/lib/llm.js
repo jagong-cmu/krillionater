@@ -94,7 +94,8 @@ export function buildUserMessage({ prompt, mode, play, count, avoid = [], known 
     );
   } else {
     parts.push(
-      "Take the time that you need. Rarity is the only goal: each answer must be one that almost nobody would think of." +
+      "Rarity is the only goal: each answer must be one that almost nobody would think of. " +
+        "Write the first answer immediately." +
         (mode === "party" ? " This is a multiplayer round, and no player can repeat an answer." : ""),
     );
     if (common.length) {

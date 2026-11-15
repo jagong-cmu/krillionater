@@ -116,7 +116,7 @@ test("an answer from the selected model replaces and outranks a quick answer", (
 test("resolveSettings selects the key and the model of the provider", () => {
   const s = resolveSettings({ provider: "openai", apiKey: "a", openaiKey: "o" });
   assert.deepEqual([s.apiKey, s.model, s.info.quickModel], ["o", "gpt-6.1-sol", "gpt-6-luna"]);
-  assert.equal(resolveSettings({}).model, "claude-opus-5-5");
+  assert.equal(resolveSettings({}).model, "claude-sonnet-5-5");
 });
 
 test("the RARE search uses more effort and the FAST list uses its own instructions", async () => {
@@ -169,6 +169,9 @@ test("a used answer removes a near spelling, and a checked answer ranks first", 
   ];
   const out = pickSuggestions(cands, { used: ["omlette"] });
   assert.deepEqual(out.map((c) => c.answer), ["Tea egg", "Shirred eggs", "Coddled eggs"]);
+  const kinds = [{ answer: "F", q: true }, { answer: "W", w: true, v: true }, { answer: "M" }];
+  assert.deepEqual(pickSuggestions(kinds).map((c) => c.answer), ["M", "W", "F"]);
+  assert.deepEqual(mergeCands([{ answer: "X", w: true, v: true }], [{ answer: "x" }]), [{ answer: "x" }]);
 });
 
 test("a result for the typed spelling does not make a second entry", () => {

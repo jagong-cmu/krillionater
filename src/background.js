@@ -5,7 +5,7 @@ import { SETTING_KEYS, resolveSettings } from "./lib/providers.js";
 import { includesAnswer, mergeCands, normalize, sameAnswer } from "./lib/game.js";
 
 // "p3" starts the stored lists again: the RARE search changed.
-const recKey = (prompt) => `p3:${normalize(prompt)}`;
+const recKey = (prompt) => `p4:${normalize(prompt)}`;
 const emptyRec = (prompt) => ({ prompt, cands: [], results: {}, invalid: [] });
 
 async function getSettings() {
@@ -67,12 +67,22 @@ const jobs = new Map();
 
 // The largest FAST list for one request. A short list arrives sooner.
 const FAST_MAX = 30;
-// Splits the stored candidates into the two lists. `q` marks the FAST list.
-const split = (cands) => ({ fast: cands.filter((c) => c.q), rare: cands.filter((c) => !c.q) });
+// The number of RARE answers that the fastest model gives while the selected model works.
+const WEAK_COUNT = 6;
+// The longest wait of the RARE search for the FAST list, in milliseconds.
+const COMMON_WAIT_MS = 800;
+// Splits the stored candidates. `q` marks the FAST list. `w` marks a RARE
+// answer from the fastest model. `rare` holds the answers of the selected model.
+const split = (cands) => ({
+  fast: cands.filter((c) => c.q),
+  rare: cands.filter((c) => !c.q && !c.w),
+});
 
 // Makes the two lists for a prompt at the same time:
-// - RARE: the selected model searches with more effort for the rarest answers.
 // - FAST: the fastest model gives any correct answers at once.
+// - RARE: the selected model searches for the rarest answers. The fastest
+//   model does the same search also, so the list has answers in a few seconds.
+//   The answers of the selected model go above them.
 // `want` is { rare, fast }: the number of answers for each list. 0 skips the list.
 function startJob(prompt, mode, want, avoid, rec, settings) {
   const { provider, info, apiKey, model, fast } = settings;
@@ -94,15 +104,25 @@ function startJob(prompt, mode, want, avoid, rec, settings) {
   const known = Object.values(rec.results);
 
   // An answer goes in one list only. The RARE list does not take an answer
-  // that the FAST list has: that answer is common.
-  const accept = (cand, quick) => {
-    if (includesAnswer(blocked, cand.answer)) return;
-    if (rec.cands.some((c) => sameAnswer(c.answer, cand.answer))) return;
-    if (job.items.some((c) => sameAnswer(c.answer, cand.answer))) return;
-    const item = quick ? { ...cand, q: true } : cand;
-    job.items.push(item);
+  // that the FAST list has: that answer is common. An answer of the selected
+  // model replaces the same answer of the fastest model.
+  // kind: "q" (FAST list), "w" (RARE, fastest model), "" (RARE, selected model).
+  const accept = (cand, kind) => {
+    if (includesAnswer(blocked, cand.answer) || includesAnswer(job.bad, cand.answer)) return;
+    const item = kind ? { ...cand, [kind]: true } : cand;
+    const replaces = (c) => !kind && c.w && sameAnswer(c.answer, cand.answer);
+    const i = job.items.findIndex((c) => sameAnswer(c.answer, cand.answer));
+    if (i >= 0) {
+      if (!replaces(job.items[i])) return;
+      job.items[i] = item;
+    } else {
+      const stored = rec.cands.find((c) => sameAnswer(c.answer, cand.answer));
+      if (stored && !replaces(stored)) return;
+      job.items.push(item);
+    }
     send({ type: "cands", items: [item] });
   };
+  const kindOf = (c) => (c.q ? "q" : c.w ? "w" : "");
 
   job.done = (async () => {
     try {
@@ -116,12 +136,12 @@ function startJob(prompt, mode, want, avoid, rec, settings) {
 
       // Checks that the answers of one list fit the prompt. A wrong answer
       // leaves the list. A failure of the check leaves the answers as they are.
-      const check = async (checker, quick) => {
-        const pending = job.items.filter((c) => !!c.q === quick && !c.v).map((c) => c.answer);
+      const check = async (checker, kind) => {
+        const pending = job.items.filter((c) => kindOf(c) === kind && !c.v).map((c) => c.answer);
         if (!pending.length) return;
         await verifyAnswers({ ...base, model: checker }, pending, (answer, ok) => {
           const i = job.items.findIndex((c) => sameAnswer(c.answer, answer));
-          if (i < 0 || !!job.items[i].q !== quick) return;
+          if (i < 0 || kindOf(job.items[i]) !== kind) return;
           if (ok) {
             job.items[i] = { ...job.items[i], v: true };
             send({ type: "cands", items: [job.items[i]] });
@@ -143,28 +163,32 @@ function startJob(prompt, mode, want, avoid, rec, settings) {
           count: Math.min(want.fast, FAST_MAX),
           avoid: [...rec.cands.map((c) => c.answer), ...blocked],
         };
-        fastStream = streamCandidates(options, (cand) => accept(cand, true));
-        stages.push(fastStream.then(() => check(info.quickModel, true)));
+        fastStream = streamCandidates(options, (cand) => accept(cand, "q"));
+        stages.push(fastStream.then(() => check(info.quickModel, "q")));
       }
       if (want.rare > 0) {
-        // The RARE search starts after the FAST list is complete. It gets that
-        // list as the level that each of its answers must be far below.
-        const rareStream = fastStream
-          .catch(() => {})
-          .then(() => {
-            const common = [...fastHave, ...job.items.filter((c) => c.q).map((c) => c.answer)];
-            const options = {
-              ...base,
-              model,
-              fast,
-              deep: true,
-              count: want.rare,
-              common,
-              avoid: [...rareHave, ...blocked],
-            };
-            return streamCandidates(options, (cand) => accept(cand, false));
-          });
-        stages.push(rareStream.then(() => check(model, false)));
+        // The RARE search waits a short time for the FAST list. It gets the
+        // answers that are there as the level that its answers must be far below.
+        await Promise.race([
+          fastStream.catch(() => {}),
+          new Promise((resolve) => setTimeout(resolve, COMMON_WAIT_MS)),
+        ]);
+        const common = [...fastHave, ...job.items.filter((c) => c.q).map((c) => c.answer)];
+        const rare = { ...base, common, avoid: [...rareHave, ...blocked] };
+        stages.push(
+          streamCandidates({ ...rare, model, fast, count: want.rare }, (cand) => accept(cand, ""))
+            .then(() => check(model, "")),
+        );
+        if (info.quickModel !== model) {
+          stages.push(
+            streamCandidates(
+              { ...rare, model: info.quickModel, count: Math.min(want.rare, WEAK_COUNT) },
+              (cand) => accept(cand, "w"),
+            )
+              .then(() => check(info.quickModel, "w"))
+              .catch(() => {}),
+          );
+        }
       }
       const failed = (await Promise.allSettled(stages)).find((r) => r.status === "rejected");
       if (failed) throw failed.reason;
@@ -245,7 +269,7 @@ async function prewarm(prompts) {
       const rec = await loadRec(prompt);
       const need = missing(rec, { rare: 6, fast: 5 }, rec.invalid);
       if (!need.rare && !need.fast) continue;
-      const want = { rare: need.rare && 12, fast: need.fast && 10 };
+      const want = { rare: need.rare && 8, fast: need.fast && 10 };
       await startJob(prompt, "solo", want, [], rec, settings).done;
     }
   };

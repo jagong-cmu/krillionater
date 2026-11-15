@@ -27,11 +27,10 @@ The panel shows two lists for the current prompt at the same time:
 - Click an answer to put it in the answer box. `Alt+1` to `Alt+3` do the same for the first three RARE answers. `Alt+4` to `Alt+6` do the same for the first three FAST answers.
 - Press Enter to submit the answer.
 - A second request checks that each answer fits the prompt. An answer that fails this check leaves the list.
-- Hold the pointer on an answer to see the reason for it.
 - In Puffer Party, the panel border becomes pink when it is your turn. The "USED" list shows each recorded answer and the player who gave it.
 - The game corrects a near spelling to the answer on its list. Thus a used answer also removes near spellings from the two lists ("omlette" and "omelette", "poached" and "poached eggs").
-- If the tracker did not see an answer, click "+" next to "USED" and type it.
-- Click "↻" to ask for more answers.
+- If the tracker did not see an answer, type it in "mark an answer as used".
+- Click "more" to ask for more answers.
 
 ## How it works
 
@@ -54,10 +53,10 @@ Notes:
 
 ## Speed
 
-- The FAST list uses the fastest model of the provider with reasoning off, so it does not wait for the RARE list.
-- The RARE list puts rarity before speed. It uses the selected model with a high reasoning setting, and it starts after the FAST list is complete. The search gets the FAST list as the level that its answers must be far below.
-- A more capable model finds rarer answers, but it is slower.
-- Each prompt uses four requests: one for each list, and one check for each list.
+- The FAST list uses the fastest model of the provider with reasoning off.
+- The RARE list uses the selected model with the lowest reasoning setting that the model accepts. The fastest model does the same rare search at the same time, so the RARE list has answers in a few seconds. The answers of the selected model go above them.
+- The rare search waits a maximum of 0.8 seconds for the FAST list. It gets the answers that are there as the level that its answers must be far below.
+- The default Claude model is Sonnet 5.5, which answers with thinking off. Opus 5.5 and Fable 5.2 find rarer answers, but they always think first, so they are slower.
 - For Claude, "Priority speed" makes Opus 5.5 faster at a higher price.
 
 ## Test

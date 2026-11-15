@@ -8,9 +8,10 @@ const TICK_MS = 200;
 // The number of answers that the panel shows in each list.
 const SHOWN = { rare: 5, fast: 8 };
 // The number of answers to ask for in each list.
-const WANT = { solo: { rare: 12, fast: 10 }, party: { rare: 40, fast: 30 } };
+// A short RARE list arrives sooner. The party refill asks for more when the list gets short.
+const WANT = { solo: { rare: 8, fast: 10 }, party: { rare: 20, fast: 30 } };
 // Ask for more party answers when fewer than this number remain in a list.
-const PARTY_LOW = { rare: 8, fast: 8 };
+const PARTY_LOW = { rare: 6, fast: 8 };
 
 const freshRound = (key = "", mode = "solo", prompt = "") => ({
   key,
@@ -177,7 +178,7 @@ function tickParty(state) {
     if (/already said/i.test(state.reject)) markUsed(rejected);
     else markInvalid(rejected);
   }
-  if (!round.loading && !round.error && round.refills < 3) {
+  if (!round.loading && !round.error && round.refills < 5) {
     const { rare, fast } = lists();
     const want = {
       rare: rare.length < PARTY_LOW.rare ? rare.length + WANT.party.rare : 0,
@@ -199,7 +200,7 @@ function draw() {
   panel.render({
     visible: !!current,
     mode: round.mode,
-    hasPrompt: !!round.prompt,
+    prompt: round.prompt,
     myTurn: current?.mode === "party" && myTurn,
     loading: round.loading,
     error: round.error,

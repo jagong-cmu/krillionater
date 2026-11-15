@@ -1,7 +1,7 @@
 // The answer providers. Pure data, so the options page and node can import it.
 //
 // The selected model makes the RARE list. `quickModel`, the fastest model of
-// the provider, makes the FAST list. Both run at the same time for each prompt.
+// the provider, makes the FAST list and the first RARE answers.
 
 export const DEFAULT_PROVIDER = "anthropic";
 
@@ -13,12 +13,12 @@ export const PROVIDERS = {
     modelField: "model",
     keyHint: "sk-ant-…",
     host: "api.anthropic.com",
-    defaultModel: "claude-opus-5-5",
+    defaultModel: "claude-sonnet-5-5",
     quickModel: "claude-haiku-5-5",
     models: [
-      { id: "claude-opus-5-5", label: "Claude Opus 5.5 (default)" },
+      { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5 (default, answers in seconds)" },
+      { id: "claude-opus-5-5", label: "Claude Opus 5.5 (rarer answers, slower)" },
       { id: "claude-fable-5-2", label: "Claude Fable 5.2 (most capable, slowest)" },
-      { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5 (faster)" },
       { id: "claude-haiku-5-5", label: "Claude Haiku 5.5 (fastest)" },
     ],
   },
