@@ -1,0 +1,17 @@
+{
+  "name": "krillionater",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Chrome extension that suggests rare answers for krillion.io",
+  "scripts": {
+    "build": "esbuild src/background.js --bundle --format=esm --outfile=dist/background.js && esbuild src/content.js --bundle --format=iife --outfile=dist/content.js && esbuild src/options.js --bundle --format=iife --outfile=dist/options.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest"
+  },
+  "devDependencies": {
+    "esbuild": "latest"
+  }
+}
