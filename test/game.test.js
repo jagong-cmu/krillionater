@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  LineParser, mergeCands, normalize, parseLine, pickSuggestions, sameAnswer, tierKey,
+  LineParser, mergeCands, nearSpelling, normalize, parseLine, pickSuggestions, sameAnswer, tierKey,
 } from "../src/lib/game.js";
 import { buildRequest } from "../src/lib/llm.js";
-import { rejectedAnswer } from "../src/lib/dom.js";
+import { rejectLine, rejectedAnswer } from "../src/lib/dom.js";
 
 test("normalize removes case, accents, punctuation, and a leading article", () => {
   assert.equal(normalize("  The Phở-Bò! "), "pho bo");
@@ -77,4 +77,25 @@ test("buildRequest sets fallbacks and fast mode only where the model accepts the
   assert.equal(haiku.useFallback, false);
   assert.equal(haiku.params.fallbacks, undefined);
   assert.equal(haiku.params.speed, undefined);
+});
+
+test("nearSpelling accepts a different spelling, not a different answer", () => {
+  assert.ok(nearSpelling("shakshuka", "Shakshouka"));
+  assert.ok(nearSpelling("corn bread", "Cornbread"));
+  assert.ok(!nearSpelling("poached", "Poached eggs"));
+  assert.ok(!nearSpelling("Apollo 11", "Apollo 12"));
+  assert.ok(!nearSpelling("flan", "flat"));
+});
+
+test("pickSuggestions removes a suggestion that the game rejected with a different spelling", () => {
+  const cands = [{ answer: "Shakshouka" }, { answer: "Cheese omelette" }, { answer: "Frittata" }];
+  const out = pickSuggestions(cands, { invalid: ["shakshuka", "cheese"] });
+  assert.deepEqual(out.map((c) => c.answer), ["Cheese omelette", "Frittata"]);
+});
+
+test("the reject lines of the game give the rejected answer", () => {
+  const doc = (line) => ({ querySelector: () => ({ textContent: line }) });
+  assert.equal(rejectedAnswer(rejectLine(doc('"cloud eggs": no echo. try again'))), "cloud eggs");
+  assert.equal(rejectedAnswer(rejectLine(doc("“cloud eggs”: no echo. keep going"))), "cloud eggs");
+  assert.equal(rejectedAnswer(rejectLine(doc("signal lost. resend"))), "");
 });

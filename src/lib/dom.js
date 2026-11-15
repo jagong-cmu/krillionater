@@ -17,6 +17,8 @@ export function readSolo(doc) {
     round,
     landed: [...root.querySelectorAll(".ds-landed")].map((el) => ({
       el,
+      // A miss: the game rejected the answer when the clock stopped.
+      miss: el.classList.contains("miss"),
       tier: text(el.querySelector(".tname")),
       answer: unquote(text(el.querySelector(".tans"))),
     })),
@@ -53,6 +55,11 @@ export function readParty(doc) {
     reject: text(root.querySelector(".ds-reject")),
     input,
   };
+}
+
+// The text of the reject line, in a solo mode or in Puffer Party.
+export function rejectLine(doc) {
+  return text(doc.querySelector(".ds-root .ds-reject, .pf-root .ds-reject"));
 }
 
 // The quoted answer in a reject line such as: “poached”: already said

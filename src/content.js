@@ -1,7 +1,9 @@
 // Content script for krillion.io. Watches the page, asks the service worker
 // for rare answers, and shows them in the panel.
-import { fillInput, readParty, readSolo, rejectedAnswer } from "./lib/dom.js";
-import { includesAnswer, mergeCands, normalize, pickSuggestions, tierKey } from "./lib/game.js";
+import { fillInput, readParty, readSolo, rejectLine, rejectedAnswer } from "./lib/dom.js";
+import {
+  includesAnswer, mergeCands, normalize, pickSuggestions, sameAnswer, tierKey,
+} from "./lib/game.js";
 import { createPanel } from "./panel.js";
 
 const TICK_MS = 200;
@@ -119,7 +121,7 @@ function markUsed(answer, by = "", alias = false) {
 }
 
 function markInvalid(answer) {
-  if (!answer || includesAnswer(round.invalid, answer)) return;
+  if (!normalize(answer) || includesAnswer(round.invalid, answer)) return;
   round.invalid.push(answer);
   send({ type: "invalid", prompt: round.prompt, answer });
 }
@@ -130,11 +132,11 @@ function trackInput(input) {
 }
 
 // Returns the answer that a new reject line refers to, or "" when nothing is new.
+// A line with no quoted answer ("signal lost. resend") is not a reject.
 function newReject(rejectText) {
   if (rejectText === lastReject) return "";
   lastReject = rejectText;
-  if (!rejectText) return "";
-  return rejectedAnswer(rejectText) || lastTyped;
+  return rejectedAnswer(rejectText);
 }
 
 function tickSolo(state) {
@@ -146,7 +148,15 @@ function tickSolo(state) {
     if (seenLanded.has(landed.el)) continue;
     seenLanded.add(landed.el);
     const tier = tierKey(landed.tier);
-    if (firstTick || !round.prompt || !landed.answer || !tier) continue;
+    if (firstTick || !round.prompt || !landed.answer) continue;
+    if (!tier) {
+      // The clock stopped, so the game shows a miss and no reject line. The
+      // text can be an incomplete word. Remove it only if it is a suggestion.
+      if (landed.miss && round.cands.some((c) => sameAnswer(c.answer, landed.answer))) {
+        markInvalid(landed.answer);
+      }
+      continue;
+    }
     const result = { answer: landed.answer, tier };
     round.results[normalize(landed.answer)] = result;
     // The game can correct the typed text. Keep the result for the typed text also.
@@ -270,5 +280,12 @@ async function prewarmDaily() {
 }
 
 setInterval(tick, TICK_MS);
+// The game removes the reject line when the player types again. The timer can
+// miss a line that stays for a short time, so read the line on each page change.
+new MutationObserver(() => {
+  const line = rejectLine(document);
+  if (!line) lastReject = "";
+  else if (line !== lastReject) tick();
+}).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
 tick();
 prewarmDaily();

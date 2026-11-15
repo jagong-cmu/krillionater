@@ -71,11 +71,9 @@ const stem = (t) => (/(s|x|z|ch|sh)es$/.test(t) ? t.slice(0, -2) : t.replace(/s$
 // The numbers in an answer ("Apollo 11", "Henry VIII"). Different numbers are different answers.
 const numbers = (s) => s.split(" ").filter((t) => /^(\d+|[ivxlc]+)$/.test(t)).join(" ");
 
-// True when the game probably treats the two strings as the same answer.
-// The game corrects a near spelling to the answer on its list, so the text
-// that a player typed can differ from the text that the page shows:
-// "omlette" and "omelette", "corn bread" and "cornbread", "poached" and "poached eggs".
-export function closeAnswer(a, b) {
+// True when the two strings differ only in spelling or in spaces:
+// "omlette" and "omelette", "corn bread" and "cornbread".
+export function nearSpelling(a, b) {
   if (sameAnswer(a, b)) return true;
   const x = normalize(a);
   const y = normalize(b);
@@ -85,7 +83,18 @@ export function closeAnswer(a, b) {
   if (xs === ys) return true;
   const shortest = Math.min(xs.length, ys.length);
   const max = shortest >= 8 ? 2 : shortest >= 5 ? 1 : 0;
-  if (max && editDistance(xs, ys, max) <= max) return true;
+  return max > 0 && editDistance(xs, ys, max) <= max;
+}
+
+// True when the game probably treats the two strings as the same answer.
+// The game corrects a near spelling to the answer on its list, so the text
+// that a player typed can differ from the text that the page shows:
+// "omlette" and "omelette", "corn bread" and "cornbread", "poached" and "poached eggs".
+export function closeAnswer(a, b) {
+  if (nearSpelling(a, b)) return true;
+  const x = normalize(a);
+  const y = normalize(b);
+  if (!x || !y || numbers(x) !== numbers(y)) return false;
   const tx = x.split(" ").map(stem);
   const ty = y.split(" ").map(stem);
   const [few, many] = tx.length <= ty.length ? [tx, ty] : [ty, tx];
@@ -153,6 +162,8 @@ export function mergeCands(existing, incoming) {
 // Returns the candidates that the player can still use, best first.
 // `results` maps a normalized answer to { answer, tier } from earlier plays.
 // `used` answers also remove near spellings, because the game corrects those.
+// `invalid` answers remove near spellings also: the player can type a
+// suggestion with a different spelling, and the game rejects that text.
 export function pickSuggestions(cands, { used = [], invalid = [], results = {} } = {}) {
   const all = Object.values(results);
   const resultFor = (answer) =>
@@ -164,7 +175,7 @@ export function pickSuggestions(cands, { used = [], invalid = [], results = {} }
     }
   }
   return pool
-    .filter((c) => !used.some((u) => closeAnswer(u, c.answer)) && !includesAnswer(invalid, c.answer))
+    .filter((c) => !used.some((u) => closeAnswer(u, c.answer)) && !invalid.some((v) => nearSpelling(v, c.answer)))
     .map((c, index) => {
       const tier = resultFor(c.answer)?.tier ?? null;
       const base = c.q ? QUICK_SCORE : c.w ? WEAK_SCORE : UNKNOWN_SCORE;
