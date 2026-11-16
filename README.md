@@ -4,18 +4,58 @@ Krillionater is a Chrome extension for [krillion.io](https://krillion.io). It re
 
 The extension suggests answers. You select an answer and you submit it.
 
-## Install
+## Setup
 
-1. Run `npm install`.
-2. Run `npm run build`.
-3. Open `chrome://extensions` in Chrome.
-4. Set "Developer mode" to on.
-5. Click "Load unpacked" and select this folder.
-6. Open the extension settings ("Details", then "Extension options").
-7. Select the answer provider: Claude, ChatGPT (OpenAI), or Gemini.
-8. Enter the API key of that provider and click "Save".
+### What you need
 
-After an update of the code, run `npm run build` and click the reload icon on the Krillionater card in `chrome://extensions`.
+- Google Chrome, or a different browser that loads Chrome extensions.
+- [Node.js](https://nodejs.org) version 18 or later. Node.js includes `npm`.
+- [Git](https://git-scm.com), or the "Download ZIP" button on the GitHub page.
+- An API key from one of these providers. The provider bills each request to your account.
+  - Claude: [platform.claude.com/settings/keys](https://platform.claude.com/settings/keys)
+  - ChatGPT (OpenAI): [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+  - Gemini: [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+
+### Build the extension
+
+1. Open a terminal.
+2. Run `git clone https://github.com/jagong-cmu/krillionater.git`.
+3. Run `cd krillionater`.
+4. Run `npm install`.
+5. Run `npm run build`. This command makes the `dist` folder, which Chrome needs.
+
+### Add the extension to Chrome
+
+1. Open `chrome://extensions` in Chrome.
+2. Set "Developer mode" to on. The switch is in the top right corner.
+3. Click "Load unpacked".
+4. Select the `krillionater` folder (the folder that contains `manifest.json`).
+
+### Enter your API key
+
+1. On the Krillionater card, click "Details".
+2. Click "Extension options".
+3. Select the answer provider: Claude, ChatGPT (OpenAI), or Gemini.
+4. Enter the API key of that provider.
+5. Click "Save".
+6. Open [krillion.io](https://krillion.io) and start a game. The panel shows in the bottom left corner.
+
+The extension keeps the key in the local storage of your browser. It sends the key only to the provider that you selected. Do not put a key in a file of this repository.
+
+### Update
+
+1. Run `git pull`.
+2. Run `npm install`.
+3. Run `npm run build`.
+4. Click the reload icon on the Krillionater card in `chrome://extensions`.
+5. Refresh the krillion.io tab.
+
+### If the panel does not work
+
+- **The panel does not show:** refresh the krillion.io tab. Make sure that the Krillionater card is on.
+- **Chrome cannot load the extension:** run `npm run build` again, then click the reload icon on the card.
+- **The panel shows a key error:** click "Open settings" in the panel and enter the key again. Make sure that the key is for the selected provider and that the account has credit.
+- **The panel reads the wrong text:** the site possibly changed its class names. Refer to "Test" below.
 
 ## Use
 
