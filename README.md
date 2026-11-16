@@ -104,3 +104,7 @@ Notes:
 Run `npm test`.
 
 The page readers depend on the class names of krillion.io (`.ds-card .prompt`, `.pf-seat`, `.pf-say.rest`, `.ds-reject`). If the site changes these names, update `src/lib/dom.js`.
+
+## License
+
+The [MIT License](LICENSE) applies to this project.

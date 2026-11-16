@@ -2,6 +2,7 @@
   "name": "krillionater",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Chrome extension that suggests rare answers for krillion.io",
   "scripts": {
